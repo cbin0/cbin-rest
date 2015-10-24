@@ -1,4 +1,5 @@
 _    = require 'underscore'
+fs   = require 'fs'
 
 module.exports =
   #读取目录下的文件夹，忽略文件
