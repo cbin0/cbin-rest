@@ -18,15 +18,14 @@ class CRest
     #获取models
     @models = do =>
       throw new Error "dir 'models' is not found" unless models  = utils.dirFileNames "#{@dir}/models"
-      _.chain models
-        .mapObject (x) =>
-          require(x)(Sequelize, @sequelize)
-        .mapObject (x) =>
-          return x.definition unless x.associations
-          _.each x.associations, (a, k) ->
-            x.definition[k]?(a...)
-          x.definition
-        .value()
+      models = _.mapObject models, (x) =>
+        require(x)(Sequelize, @sequelize)
+      models = _.mapObject models, (x) =>
+        return x.definition unless x.associations
+        _.each x.associations, (a, k) ->
+          a[0] = models[a[0]].definition
+          x.definition[k]?(a...)
+        x.definition
     #初始化helpers
     @helpers = do =>
       require('./helpers').new @models, @configs
