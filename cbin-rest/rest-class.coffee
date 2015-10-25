@@ -20,7 +20,7 @@ class CRest
       throw new Error "dir 'models' is not found" unless models  = utils.dirFileNames "#{@dir}/models"
       _.chain models
         .mapObject (x) =>
-          require(x)(@sequelize)
+          require(x)(Sequelize, @sequelize)
         .mapObject (x) =>
           return x.definition unless x.associations
           _.each x.associations, (a, k) ->
