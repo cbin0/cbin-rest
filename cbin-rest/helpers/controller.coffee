@@ -3,55 +3,58 @@ async      = require 'async'
 restify   = require 'restify'
 sequelize = require 'sequelize'
 
-module.exports = (models, configs) ->
+#funcs
+getModel  = (models, name) -> models[name]
 
-  #funcs
-  getModel  = (name) -> models[name]
+pager = (req) -> (cb) ->
+  {page = 1, pageSize = 10} = req.params
+  offset = pageSize * (page - 1)
+  limit = pageSize
+  cb null, {offset, limit}
 
-  pager = (req) -> (cb) ->
-    {page = 1, pageSize = 10} = req.params
-    offset = pageSize * (page - 1)
-    limit = pageSize
-    cb null, {offset, limit}
+makeWhere = (model, req) -> (cb) ->
+  where =
+    isDeleted: no
+  #attributes
+  if req.params.attributes
+    where.attributes = _.chain(req.params.attributes.split ",")
+      .filter (x) ->
+        model[x] isnt undefined
+      .value()
+  #include
+  if req.params.include
+    where.include = _.chain(req.params.include.split ",")
+      .filter (x) ->
+        getModel[x.trim()]?
+      .map (x) ->
+        model: x,
+        require: true
+      .value()
 
-  makeWhere = (model, req) -> (cb) ->
-    where =
-      isDeleted: no
-    #attributes
-    if req.params.attributes
-      where.attributes = _.chain(req.params.attributes.split ",")
-        .filter (x) ->
-          model[x] isnt undefined
-        .value()
-    #include
-    if req.params.include
-      where.include = _.chain(req.params.include.split ",")
-        .filter (x) ->
-          getModel[x.trim()]?
-        .map (x) ->
-          model: x,
-          require: true
-        .value()
+  #删除不在model中的字段
+  model.describe().then (attrs) ->
+    cb null, _.omit(where, (x, attr) ->
+      not attrs[attr]?
+    )
 
-    #删除不在model中的字段
-    model.describe().then (attrs) ->
-      cb null, _.omit(where, (x, attr) ->
-        not attrs[attr]?
-      )
+#查询数据库，返回一个aync的done函数
+query = (hook, req, res, next, exec) -> (err, results) ->
+  return next err if err?
+  promise = exec(results)
+  promise.then((result) ->
+    return next result if result.constructor is Error
+    req.hooks[hook] = result
+    next()
+  ).catch (err) ->
+    next err
 
-  #查询数据库，返回一个aync的done函数
-  query = (hook, req, res, next, exec) -> (err, results) ->
-    return next err if err?
-    promise = exec(results)
-    promise.then((result) ->
-      return next result if result.constructor is Error
-      req.hooks[hook] = result
-      next()
-    ).catch (err) ->
-      next err
 
-  model: (name, hook = name) -> (req, res, next) ->
-    model = getModel name
+class ControllerHelper
+
+  constructor: (@models, @configs) ->
+
+  model: (name, hook = name) => (req, res, next) =>
+    model = getModel @models, name
     unless model
       next new restify.errors.InternalServerError 'server error'
     else
@@ -91,3 +94,5 @@ module.exports = (models, configs) ->
   json: (hook) -> (req, res, next) ->
     res.json req.hooks[hook]
     res.end()
+
+module.exports = ControllerHelper

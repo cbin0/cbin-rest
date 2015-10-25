@@ -1,4 +1,7 @@
+Controller  = require('./controller')
+Route       = require('./route')
+
 module.exports =
-  init: (models, configs) ->
-    controller: require('./controller')(models, configs)
-    route: require('./route')(models, configs)
+  new: (models, configs) ->
+    controller: new  Controller(models, configs)
+    route: new  Route(models, configs)
