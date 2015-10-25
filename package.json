@@ -1,13 +1,17 @@
 {
   "name": "cbin-rest",
   "version": "0.1.0",
+  "main": "cbin-rest/index.coffee",
+  "script": {
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/cbin0/cbin-rest.git"
   },
   "dependencies": {
+    "mysql": "2.9.0",
     "async": "1.4.2",
-    "underscore": "1.5.1",
+    "underscore": "1.8.3",
     "restify": "4.0.3",
     "sequelize": "3.12.2",
     "moment": "2.10.3"
